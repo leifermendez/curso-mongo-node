@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const { Usuarios } = require('./modeloUser')
 const { Publicaciones } = require('./modeloPublicaciones')
+const { Categories } = require('./modelCategories')
 
 const DB_URI = 'mongodb://localhost:27017/app_youtube_blog'
 
@@ -19,12 +20,21 @@ mongoose.connect(DB_URI,
     });
 
 
+const crearCategoria = () => {
+    Categories.create(
+        {
+            name: 'Salud'
+        }
+    )
+}
+
 const crearUsuario = () => {
     Usuarios.create(
         {
-            name: 'Jesus',
-            email: 'jesus@demo.com',
-            numberPhone: '12345678'
+            name: 'Luis (edition)',
+            email: 'luis@demo.com',
+            numberPhone: '12345678',
+            tag: ['edition']
         }
     )
 }
@@ -32,14 +42,16 @@ const crearUsuario = () => {
 const createPublicacion = () => {
     const listPost = [
         {
-            title: 'Mi post!',
+            title: 'Relaciones publicas',
             description: 'Hola mundo bla bla',
-            author: mongoose.Types.ObjectId("6021150a1f183b248c8a8e3f")
+            author: mongoose.Types.ObjectId("6021150a1f183b248c8a8e3f"),
+            categories: ['Tech']
         },
         {
-            title: 'Mi segundo post!',
+            title: 'Noticia IMPORT Covid (Tech)',
             description: 'Hola mundo bla bla',
-            author: mongoose.Types.ObjectId("6021150a1f183b248c8a8e3f")
+            author: mongoose.Types.ObjectId("6021150a1f183b248c8a8e3f"),
+            categories: ['Tech', 'Salud']
         }
     ]
 
@@ -140,9 +152,38 @@ const publicacionConUsuario = async () => {
 
 }
 
+const listaCategoriesConPublicaciones = async () => {
 
+    const resultado = await Publicaciones.aggregate( // (1) Padre --- (Categories)
+        [
+            {
+                $lookup:
+                {
+                    from: "categories", // (2) Hijo --- (publicaciones)
+                    let: {
+                        aliasNombreCategoria: "$categories"// (1) Nombre de la categoria "Tech" (string)
+                    },
+                    pipeline: [ // (2) publicaciones
+                        {
+                            $match: {
+                                $expr: {
+                                    $in: ["$name", "$$aliasNombreCategoria"] // [Salud]
+                                }
+                            }
+                        }
+                    ],
+                    as: 'listDeCategorias'
+                }
+            }
+        ]
+    )
 
-publicacionConUsuario();
+    console.log('*********** RESULTADOS ***********', JSON.stringify(resultado));
+}
+
+// crearCategoria()
+
+// publicacionConUsuario();
 
 
 // borrarPost();
@@ -152,3 +193,4 @@ publicacionConUsuario();
 // buscarPorId();
 // crearUsuario()
 // createPublicacion()
+listaCategoriesConPublicaciones();
